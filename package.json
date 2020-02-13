@@ -1,0 +1,22 @@
+{
+  "name": "tinypng",
+  "version": "1.0.0",
+  "description": "extend from j3tinypng, Multi-level file.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "bin": {
+    "tinyImage": "./index.js"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "chalk": "^3.0.0",
+    "commander": "^4.1.1",
+    "fs-readdir-recursive": "^1.1.0",
+    "output-file-sync": "^2.0.1",
+    "pretty-bytes": "^5.3.0"
+  }
+}
