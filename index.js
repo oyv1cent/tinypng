@@ -10,16 +10,16 @@ const chalk = require('chalk');
 const prettyBytes = require('pretty-bytes');
 require("./utils/promise-map");
 
-let totalFile = 0, successFile = 0, totalSize = 0, successSize = 0, errorFiles = []
+let totalFiles = [], requiredCompressionFiles = [], successFiles = [], errorFiles = [], successSize = 0
 
 const getCompressedPicUrl = async (src, target) => {
     const readStream = fs.createReadStream(src);
     try {
         const { data } = await axios.post('https://tinypng.com/web/shrink', readStream)
         const { input, output } = data
-        successFile++
+        successFiles.push(src)
         successSize += output.size
-        console.log(`✅${chalk.red(src)}(${chalk.red(prettyBytes(input.size))}) => ${chalk.green(target)}(${chalk.green(prettyBytes(output.size))})`)
+        console.log(`✅: ${chalk.red(src)}(${chalk.red(prettyBytes(input.size))}) => ${chalk.green(target)}(${chalk.green(prettyBytes(output.size))})`)
         return output.url
     } catch (e) {
         errorFiles.push(src)
@@ -37,21 +37,24 @@ const download = async (url, output) => {
     outputFileSync(output, data)
 }
 
-const upload = async (src) => {
-    totalFile++
+const isRequiredCompression = (src) => {
     const fileSize = fs.statSync(src).size
-    totalSize += fileSize
+    const ext = path.parse(src).ext
     const filePathArray = src.split('/')
     const filename = filePathArray[filePathArray.length -1]
-    const ext = path.parse(src).ext
+
     if (!/\.(png|jp(e?)g)/.test(ext) || fileSize <= program.limitSize * 1000) {
-        successFile++
-        successSize += fileSize
-        console.log(`✅ ${chalk.green(`${filename} not required compression`)}`)
+        console.log(`✅: ${chalk.green(`${filename} not required compression`)}`)
         const resultPath = path.join(program.outDir, ...filePathArray.splice(1, filePathArray.length - 1))
         outputFileSync(resultPath, fs.readFileSync(src))
-        return
+        return false
     }
+    return true
+}
+
+const upload = async (src) => {
+    const filePathArray = src.split('/')
+    const filename = filePathArray[filePathArray.length -1]
 
     const { outFile, outDir } = program
     let output = outFile
@@ -71,7 +74,7 @@ const upload = async (src) => {
 
 program.option("-o, --out-file [out]", "compress the input image into a single file");
 program.option("-d, --out-dir [out]", "compress the input image(s) into an output directory");
-program.option("-c, --concurrent [count]", "Limit Compression Concurrency, default: 3", 3);
+program.option("-c, --concurrent [count]", "Limit Compression Concurrency, default: 5", 5);
 program.option("-s, --limit-size [count]", "Compression Limit Size(kb), default: 10", 10);
 program.version(packageJson.version, '-v, --version');
 program.usage("[options] <file or directory...>");
@@ -106,32 +109,39 @@ if (errors.length) {
 
 const fileUploadStatusLog = () => {
     console.log(chalk.hex('#21ccb2')('==================Finished==================='))
-    console.log(`🚀: Total: ${chalk.green(`${totalFile}`)}`)
-    console.log(`✅: Success: ${chalk.green(`${successFile}`)}`)
+    console.log(`🚀: ${chalk.hex('#cc5f18')(`Total Files: ${totalFiles.length}`)}
+     => ${chalk.hex('#cc5f18')(`Require Compression Files: ${requiredCompressionFiles.length}`)}`)
+    console.log(`✅: ${chalk.green(`Success: ${successFiles.length}`)}`)
     if(errorFiles.length) {
-        console.log(`❌: Filed: ${chalk.red(`${errorFiles.length} => ${errorFiles}`)}`)
+        console.log(`❌: ${chalk.red(`Failed: ${errorFiles.length} => ${errorFiles}`)}`)
     }
-    console.log(`🚅: ${chalk.red(prettyBytes(totalSize))} => ${chalk.green(prettyBytes(successSize))}`)
+    const requiredCompressionFilesTotalSize = requiredCompressionFiles.reduce(((previousValue, current) => previousValue + fs.statSync(current).size), 0)
+    console.log(`🚅: ${chalk.red(prettyBytes(requiredCompressionFilesTotalSize))} => ${chalk.green(prettyBytes(successSize))}`)
 }
 
 const uploadFile = async () => {
     const stat = fs.statSync(filename);
     if (stat.isDirectory(filename)) {
         const dirname = filename;
-        const uploadList = []
         readdir(dirname).forEach(async function (filename) {
             const src = path.join(dirname, filename);
-            uploadList.push({ src })
+            totalFiles.push(src)
+            if(isRequiredCompression(src)) {
+                requiredCompressionFiles.push(src)
+            }
         });
         try {
-            await Promise.map(uploadList, uploadTask => {
-                const { src } = uploadTask
-                return upload(src)
+            await Promise.map(requiredCompressionFiles, uploadTask => {
+                return upload(uploadTask)
             }, program.concurrent)
         } catch (e) {}
     } else {
+        totalFiles.push(filename)
         try {
-            await upload(filename, filename);
+            if(isRequiredCompression(filename)) {
+                requiredCompressionFiles.push(filename)
+                await upload(filename)
+            }
         } catch (e) {}
     }
     fileUploadStatusLog()

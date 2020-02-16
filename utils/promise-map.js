@@ -6,10 +6,10 @@ function map(arr, fn, concurrency) {
 
   return new Promise(function(resolve, reject) {
 
-    var completed = 0;
-    var started = 0;
-    var running = 0;
-    var results = new Array(arr.length);
+    let completed = 0;
+    let started = 0;
+    let running = 0;
+    let results = new Array(arr.length);
 
     (function replenish() {
       if (completed >= arr.length) {
@@ -22,15 +22,14 @@ function map(arr, fn, concurrency) {
 
         var index = started - 1;
         fn.call(arr[index], arr[index], index) // item,index
-          .then(function(result) {
-            // console.log('done');
+          .then(() => {
             running--;
             completed++;
-            results[index] = result;
+            results[index] = arr[index];
 
             replenish();
           })
-          .catch(reject);
+          .catch((reject));
       }
     })();
   });
