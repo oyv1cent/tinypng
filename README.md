@@ -8,7 +8,7 @@ npm install
 npm install tinypng-files -g
 ```
 
-use tinyPng
+how to use tinyPng
 
 ```
 tinyPng -h
