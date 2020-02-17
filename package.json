@@ -1,6 +1,6 @@
 {
   "name": "tinypng-files",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "extend from j3tinypng, Multi-level file.",
   "main": "index.js",
   "scripts": {
