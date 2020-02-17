@@ -1,13 +1,26 @@
 Tiny png~
 
+> use this plugin to compress png|jpg|jpeg file
+
 npm install
 
 ```
-single image
+npm install tinypng-files -g
+```
 
-tinyimage 3.png -o ss.png -s 12
+use tinyPng
 
-file image
+```
+tinyPng -h
+```
 
-node index.js file -d anotherfile -s 1
+single file
+
+```
+tinyPng 3.png -o ss.png
+```
+files
+
+```
+tinyPng files -d anotherfiles
 ```

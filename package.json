@@ -9,7 +9,7 @@
   "author": "",
   "license": "MIT",
   "bin": {
-    "tinyImage": "./index.js"
+    "tinyPng": "./index.js"
   },
   "dependencies": {
     "axios": "^0.19.2",
